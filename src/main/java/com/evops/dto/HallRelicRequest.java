@@ -15,6 +15,9 @@ public class HallRelicRequest {
     @NotBlank(message = "巡检点位编码不能为空")
     private String pointCode;
 
-    /** 陈展编号 */
+    /** 陈展编号（展签） */
     private String displayNo;
+
+    /** 箱号（清点基线快照用） */
+    private String boxNo;
 }

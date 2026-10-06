@@ -475,4 +475,38 @@ public final class MuseumConstants {
     public static final String ACTION_APPRAISAL_REPORT_DOWNLOAD = "APPRAISAL_REPORT_DL";
     public static final String ACTION_APPRAISAL_REPORT_DENY = "APPRAISAL_REPORT_DENY";
     public static final String ACTION_REPAIR_OP_REJECT = "REPAIR_OP_REJECT";
+
+    // --------------------------------------------------------------------
+    // museum-12 展览借品清点盘点
+    // --------------------------------------------------------------------
+
+    /** 清点任务状态：清点中 / 已关闭（关闭后只能新增补充记录） */
+    public static final String INV_TASK_OPEN = "OPEN";
+    public static final String INV_TASK_CLOSED = "CLOSED";
+
+    /** 扫描判定：相符 / 错位（箱号或点位不符）/ 状态异常（已撤销或在借却在场）/ 未在基线 */
+    public static final String INV_SCAN_MATCHED = "MATCHED";
+    public static final String INV_SCAN_MISPLACED = "MISPLACED";
+    public static final String INV_SCAN_ABNORMAL = "ABNORMAL";
+    public static final String INV_SCAN_UNEXPECTED = "UNEXPECTED";
+
+    /** 差异类型：缺失 / 错位 / 状态异常 */
+    public static final String INV_DIFF_MISSING = "MISSING";
+    public static final String INV_DIFF_MISPLACED = "MISPLACED";
+    public static final String INV_DIFF_ABNORMAL = "STATUS_ABNORMAL";
+
+    /** 差异单状态：待复核 / 复核完成 */
+    public static final String INV_DIFF_OPEN = "OPEN";
+    public static final String INV_DIFF_REVIEWED = "REVIEWED";
+
+    /** 清点台账流水动作 */
+    public static final String ACTION_INV_TASK_GENERATE = "INV_TASK_GENERATE";
+    public static final String ACTION_INV_SCAN = "INV_SCAN";
+    public static final String ACTION_INV_REBASELINE = "INV_REBASELINE";
+    public static final String ACTION_INV_DIFF_CREATE = "INV_DIFF_CREATE";
+    public static final String ACTION_INV_DIFF_REVIEW = "INV_DIFF_REVIEW";
+    public static final String ACTION_INV_DIFF_REVIEW_REJECT = "INV_DIFF_REVIEW_REJECT";
+    public static final String ACTION_INV_TASK_CLOSE = "INV_TASK_CLOSE";
+    public static final String ACTION_INV_SUPPLEMENT = "INV_SUPPLEMENT";
+    public static final String ACTION_INV_HALL_CLOSE = "INV_HALL_CLOSE";
 }

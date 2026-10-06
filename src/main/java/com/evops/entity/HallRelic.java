@@ -24,8 +24,11 @@ public class HallRelic extends BaseEntity {
     /** 巡检点位编码（展柜/区域），同一展厅内同一点位可有若干件文物 */
     private String pointCode;
 
-    /** 陈展编号 */
+    /** 陈展编号（展签） */
     private String displayNo;
+
+    /** 箱号（museum-12 清点基线快照用） */
+    private String boxNo;
 
     /** ON_DISPLAY / WITHDRAWN */
     private String status;

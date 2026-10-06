@@ -1,6 +1,7 @@
 package com.evops.controller;
 
 import com.evops.common.ApiResponse;
+import com.evops.dto.HallCloseRequest;
 import com.evops.dto.HallCreateRequest;
 import com.evops.dto.HallRelicRequest;
 import com.evops.entity.Hall;
@@ -61,5 +62,13 @@ public class HallController {
     @PostMapping("/api/halls/{id}/relics/{relicId}/withdraw")
     public ApiResponse<HallRelic> withdraw(@PathVariable Long id, @PathVariable Long relicId) {
         return ApiResponse.ok(hallService.withdraw(id, relicId));
+    }
+
+    /** 关闭展厅（展览）：有清点中任务或未复核差异单时拒绝（复核完成前不能关闭展览） */
+    @PostMapping("/api/halls/{id}/close")
+    public ApiResponse<Hall> close(@PathVariable Long id,
+                                   @RequestBody(required = false) HallCloseRequest request) {
+        return ApiResponse.ok(hallService.close(id,
+                request == null ? null : request.getClosedBy()));
     }
 }
