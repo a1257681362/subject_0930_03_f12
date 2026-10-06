@@ -475,4 +475,101 @@ public final class MuseumConstants {
     public static final String ACTION_APPRAISAL_REPORT_DOWNLOAD = "APPRAISAL_REPORT_DL";
     public static final String ACTION_APPRAISAL_REPORT_DENY = "APPRAISAL_REPORT_DENY";
     public static final String ACTION_REPAIR_OP_REJECT = "REPAIR_OP_REJECT";
+
+    // ------------------------------------------------------------------
+    // museum-12 展览借品清点盘点
+    // ------------------------------------------------------------------
+
+    /** 展览状态：筹备中 / 开放中 / 已关闭 */
+    public static final String EXH_PLANNED = "PLANNED";
+    public static final String EXH_OPEN = "OPEN";
+    public static final String EXH_CLOSED = "CLOSED";
+
+    /** 清点版本类型：旧数据回放 / 现场清点 */
+    public static final String ROUND_REPLAY = "REPLAY";
+    public static final String ROUND_LIVE = "LIVE";
+    public static final String ROUND_TITLE_DEFAULT = "展览借品清点盘点";
+
+    /** 清点版本状态：清点中 / 被新版本取代 / 已关闭 */
+    public static final String ROUND_FROZEN = "FROZEN";
+    public static final String ROUND_SUPERSEDED = "SUPERSEDED";
+    public static final String ROUND_CLOSED = "CLOSED";
+
+    /** 清点任务状态：待清点 / 已提交待复核 / 已复核 / 随版本关闭 / 随版本取代 */
+    public static final String ST_TASK_PENDING = "PENDING";
+    public static final String ST_TASK_SUBMITTED = "SUBMITTED";
+    public static final String ST_TASK_REVIEWED = "REVIEWED";
+    public static final String ST_TASK_CLOSED = "CLOSED";
+    public static final String ST_TASK_SUPERSEDED = "SUPERSEDED";
+
+    /** 差异类型：缺失 / 错位 / 状态异常 */
+    public static final String DIFF_MISSING = "MISSING";
+    public static final String DIFF_MISPLACED = "MISPLACED";
+    public static final String DIFF_STATUS_ABNORMAL = "STATUS_ABNORMAL";
+
+    /** 差异原因码 */
+    /** 应在陈但未扫到 */
+    public static final String REASON_NOT_SCANNED = "NOT_SCANNED";
+    /** 展签未知 */
+    public static final String REASON_UNKNOWN_LABEL = "UNKNOWN_LABEL";
+    /** 箱号未知（在库箱号查不到） */
+    public static final String REASON_UNKNOWN_BOX = "UNKNOWN_BOX";
+    /** 展签与箱中文物不符 */
+    public static final String REASON_LABEL_MISMATCH = "LABEL_MISMATCH";
+    /** 点位错位 */
+    public static final String REASON_WRONG_POINT = "WRONG_POINT";
+    /** 文物属于本展览其他展厅 */
+    public static final String REASON_WRONG_HALL = "WRONG_HALL";
+    /** 展签在本厅被多个在陈记录复用，无法判定 */
+    public static final String REASON_LABEL_REUSED = "LABEL_REUSED";
+    /** 文物已撤销 */
+    public static final String REASON_REVOKED = "REVOKED";
+    /** 已撤回陈展但实物仍扫到 */
+    public static final String REASON_WITHDRAWN_PRESENT = "WITHDRAWN_STILL_PRESENT";
+    /** 修复中 */
+    public static final String REASON_IN_REPAIR = "IN_REPAIR";
+    /** 已借出但实物仍在场 */
+    public static final String REASON_ON_LOAN_PRESENT = "ON_LOAN_PRESENT";
+    /** 现场上报残损/状态异常 */
+    public static final String REASON_DAMAGE_REPORTED = "DAMAGE_REPORTED";
+    /** 应缺失但无台账依据可解释 */
+    public static final String REASON_NO_LEDGER_BASIS = "NO_LEDGER_BASIS";
+
+    /** 差异解释来源：回放引用台账 / 人工填写 */
+    public static final String EXPLAIN_REPLAY_LEDGER = "REPLAY_LEDGER";
+    public static final String EXPLAIN_MANUAL = "MANUAL";
+
+    /** 差异确认状态 */
+    public static final String CONFIRM_PENDING = "PENDING";
+    public static final String CONFIRM_CONFIRMED = "CONFIRMED";
+
+    /** 清点操作类型（尝试审计） */
+    public static final String ST_OP_REPLAY = "REPLAY";
+    public static final String ST_OP_ROUND_CREATE = "ROUND_CREATE";
+    public static final String ST_OP_SCAN = "SCAN";
+    public static final String ST_OP_FINISH = "FINISH";
+    public static final String ST_OP_REVIEW = "REVIEW";
+    public static final String ST_OP_EXPLAIN = "EXPLAIN";
+    public static final String ST_OP_CONFIRM = "CONFIRM";
+    public static final String ST_OP_CLOSE_ROUND = "CLOSE_ROUND";
+    public static final String ST_OP_SUPPLEMENT = "SUPPLEMENT";
+
+    /** 清点台账动作 */
+    public static final String ACTION_EXH_CREATE = "EXHIBITION_CREATE";
+    public static final String ACTION_EXH_HALL_ATTACH = "EXHIBITION_HALL_ATTACH";
+    public static final String ACTION_EXH_OPEN = "EXHIBITION_OPEN";
+    public static final String ACTION_EXH_CLOSE = "EXHIBITION_CLOSE";
+    public static final String ACTION_ST_ROUND_CREATE = "STOCKTAKE_ROUND_CREATE";
+    public static final String ACTION_ST_REPLAY = "STOCKTAKE_REPLAY";
+    public static final String ACTION_ST_SUPERSEDE = "STOCKTAKE_SUPERSEDE";
+    public static final String ACTION_ST_SCAN = "STOCKTAKE_SCAN";
+    public static final String ACTION_ST_SUBMIT = "STOCKTAKE_SUBMIT";
+    public static final String ACTION_ST_BASELINE_CONFLICT = "STOCKTAKE_BASELINE_CONFLICT";
+    public static final String ACTION_ST_REVIEW = "STOCKTAKE_REVIEW";
+    public static final String ACTION_ST_REVIEW_REJECT = "STOCKTAKE_REVIEW_REJECT";
+    public static final String ACTION_ST_DIFF_EXPLAIN = "STOCKTAKE_DIFF_EXPLAIN";
+    public static final String ACTION_ST_DIFF_CONFIRM = "STOCKTAKE_DIFF_CONFIRM";
+    public static final String ACTION_ST_ROUND_CLOSE = "STOCKTAKE_ROUND_CLOSE";
+    public static final String ACTION_ST_SUPPLEMENT = "STOCKTAKE_SUPPLEMENT";
+    public static final String ACTION_ST_OP_REJECT = "STOCKTAKE_OP_REJECT";
 }

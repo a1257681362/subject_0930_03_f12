@@ -700,3 +700,102 @@ CONDITIONAL 必带合法等级、无借阅/已批准待出库 RECALL/已归还 S
 8 并发阶段登记全部生效阶段号 1..8、8 并发修复完成恰 1 生效 7 拒绝且被拒记录指向
 同一胜出尝试、7 条 `REPAIR_OP_REJECT` 台账均写明最终生效尝试、胜出流水号重放不二次执行、
 8 并发同一流水号开工只形成一条生效尝试。
+
+## 展览借品清点盘点（museum-12）
+
+一个**展览含多个展厅**，清点按**版本**组织（`t_stocktake_round`）：先用修复/借还旧数据
+**台账回放**生成 REPLAY 版本，差异自动引用 `t_relic_ledger` 给出解释；再生成正式现场版本
+**「展览借品清点盘点」**（LIVE），按展厅冻结基准生成清点任务。工作人员扫描**箱号+展签**，
+提交时逐行比对冻结基准，列出**缺失 / 错位 / 状态异常**三类差异。差异必须能解释、现场差异
+必须有照片与两名不同见证人；全部任务复核、全部差异确认前**不能关闭版本与展览**。
+清点期间借还/陈展/箱位变化触发**基准指纹版本冲突**（不写入任何扫描数据），可重建版本
+（rebase），旧版本置 SUPERSEDED 且原文保留，已接受扫描搬运到新版本。关闭后结果不可变，
+只能**追加补充记录**。
+
+### 数据模型
+
+| 表 | 说明 |
+| --- | --- |
+| `t_exhibition` / `t_exhibition_hall` | 展览（PLANNED/OPEN/CLOSED）与展览-展厅挂载 |
+| `t_stocktake_round` | 清点版本（REPLAY/LIVE，展览内版本号递增；FROZEN/SUPERSEDED/CLOSED；版本基准指纹；回放 request_no 稀疏唯一） |
+| `t_stocktake_task` | 按展厅的清点任务（PENDING/SUBMITTED/REVIEWED/CLOSED/SUPERSEDED，任务基准指纹、三类差异计数、展厅状态快照） |
+| `t_stocktake_baseline_line` | 冻结基准行（陈展记录/展签/点位、文物状态、未还借出借单、未结修复项目、在库箱号快照），只追加 |
+| `t_stocktake_scan_batch` / `t_stocktake_scan_line` | 扫描批次（request_no 幂等）与箱号+展签扫描行，只追加 |
+| `t_stocktake_diff` / `t_stocktake_diff_photo` | 三类差异行（原因码、期望/发现值、解释/来源台账引用/见证人/确认状态）与内容寻址现场照片 |
+| `t_stocktake_supplement` / `t_stocktake_supplement_photo` | 版本关闭后的补充记录及照片，只追加，不改写原结果 |
+| `t_stocktake_attempt` | 写操作尝试审计（EFFECTIVE/REJECTED，request_no 幂等回放，被拒尝试 REQUIRES_NEW 独立保留） |
+| `t_stocktake_ledger` | 清点领域台账，全部动作只追加留痕 |
+
+### 清点规则
+
+- **基准与指纹**：冻结时逐厅采集 `t_hall` + 全部 `t_hall_relic`（ON_DISPLAY 应在陈、
+  WITHDRAWN 不要求在场），逐文物关联 `t_relic` 状态、`t_relic_loan` 未还借出、
+  `t_repair_project` 未结项目（PLANNED/REPAIRING/REPAIRED）、`t_storage_stock` 在库箱号，
+  规范行做 SHA-256 任务指纹，再聚合版本指纹。
+- **版本冲突（提交时检测，零侵入既有借还服务）**：每次扫描提交与最终提交先对任务行加锁，
+  用同一套基准查询重算指纹；陈展状态/点位/展签变化、新增陈展、文物撤销、借出借还、
+  未结修复变化、箱号移动、展厅关闭等任一项变化即报“清点基准已发生版本冲突”，
+  不写入任何扫描数据，REQUIRES_NEW 落 REJECTED 尝试；`GET …/baseline-changes` 可查看
+  逐项变更（含变化后台账动作/单号/时间佐证）。处理方式是带 `fromRoundId` 重建版本。
+- **三类差异**：
+  - MISSING 缺失：应在陈文物从未扫到（NOT_SCANNED）。
+  - MISPLACED 错位：展签与箱中文物不符 LABEL_MISMATCH、点位不符 WRONG_POINT、
+    箱号在库存中查不到 UNKNOWN_BOX、展签未知 UNKNOWN_LABEL、属于本展览其他厅 WRONG_HALL、
+    同一展签被厅内多个在陈记录复用 LABEL_REUSED（不臆测归属）。
+  - STATUS_ABNORMAL 状态异常：文物已撤销 REVOKED、已撤展实物仍在 WITHDRAWN_STILL_PRESENT、
+    已借出实物仍在 ON_LOAN_PRESENT、修复中 IN_REPAIR、现场上报残损 DAMAGE_REPORTED。
+  - 同批次内重复（箱号+展签）拒绝；跨批重复提交时合并计一次。
+- **差异必须能解释（硬闸门）**：无解释的差异一律阻断任务复核。
+  - REPLAY 回放差异：自动写解释与 `source_ref`（如 `t_relic_ledger#123 LOAN_OUT
+    LO-2026-0001 2026-…`），免照片/见证人，但仍须逐条 CONFIRMED；
+    借出状态查不到任何借出台账时保留为 NO_LEDGER_BASIS 无解释差异，须人工解释。
+  - LIVE 现场差异：须人工填解释、**先上传≥1 张现场照片**（内容寻址复用影像库，
+    同差异同图不重复）、**两名见证人非空且不能为同一人**（沿用押运开箱规则）。
+- **闸门顺序**：任务复核（差异全部有解释、现场差异照片+双见证人齐全）
+  → 差异逐条 CONFIRMED → 关闭版本（全部任务 REVIEWED）→ 关闭展览（存在版本且全部版本
+  CLOSED 或 SUPERSEDED）。零差异任务也必须显式复核。
+- **关闭后不可变**：任务/版本关闭后扫描、提交、解释、确认、复核、重建全部拒绝，
+  只能追加补充记录（可挂任务/差异，可带照片与两名不同见证人），原结果永不改写。
+- **幂等与并发**：回放/建版本/扫描/提交均支持 `requestNo`，锁前快查、任务或展览行锁内复查，
+  命中同一次尝试即回放原结果/原拒绝原因；每次尝试落 `t_stocktake_attempt`，
+  全部跃迁落 `t_stocktake_ledger`。
+
+### 接口
+
+| 方法与路径 | 作用 |
+| --- | --- |
+| `POST /api/exhibitions` / `GET /api/exhibitions?status=` | 建展（PLANNED）/ 列表 |
+| `GET /api/exhibitions/{id}` | 展览详情（展厅+全部版本） |
+| `POST /api/exhibitions/{id}/open` / `POST /api/exhibitions/{id}/close` | 开放 / 关闭（清点未闭环硬阻断） |
+| `POST /api/exhibitions/{id}/halls` | 挂载展厅（须 ACTIVE，重复/关闭厅拒绝） |
+| `POST /api/exhibitions/{id}/rounds/replay` | 旧数据台账回放（`requestNo` 幂等，差异自动引用台账） |
+| `POST /api/exhibitions/{id}/rounds` | 生成正式现场版本（标题默认“展览借品清点盘点”；带 `fromRoundId` 重建版本并搬运扫描） |
+| `GET /api/exhibitions/{id}/rounds` / `GET /api/stocktake-rounds/{id}` | 版本列表 / 版本详情（任务计数+补充记录） |
+| `GET /api/stocktake-tasks?roundId=&hallId=&status=` | 清点任务列表 |
+| `GET /api/stocktake-tasks/{id}` | 任务详情（基准行、扫描批次/行、差异/照片、补充） |
+| `GET /api/stocktake-tasks/{id}/baseline-changes` | 版本冲突预检：冻结/当前指纹与逐项变更 |
+| `POST /api/stocktake-tasks/{id}/scans` | 扫描批次提交（箱号+展签；基准变更报版本冲突） |
+| `POST /api/stocktake-tasks/{id}/submit` | 最终提交：比对生成三类差异，进入待复核 |
+| `POST /api/stocktake-tasks/{id}/review` | 任务复核（解释/照片/见证人闸门） |
+| `POST /api/stocktake-diffs/{id}/photos` | 差异现场照片（multipart，内容寻址去重） |
+| `POST /api/stocktake-diffs/{id}/explain` | 差异解释（LIVE 须照片+双见证人；REPLAY 免见证人） |
+| `POST /api/stocktake-diffs/{id}/confirm` | 差异逐条确认 |
+| `POST /api/stocktake-rounds/{id}/close` | 关闭版本（全部任务复核+差异确认） |
+| `POST /api/stocktake-rounds/{id}/supplements`（+`/supplements/{suppId}/photos`） | 关闭后追加补充记录/照片 |
+| `GET /api/stocktake-attempts?roundId=&taskId=&operation=` | 清点尝试审计（生效/被拒绝/版本冲突） |
+| `GET /api/stocktake-ledgers?exhibitionId=&roundId=&hallId=` | 清点台账流水 |
+
+### 测试
+
+`ExhibitionStocktakeTest`（独立内存库）覆盖：建展/挂厅校验（未知厅、关闭厅、重复挂载、
+筹备中不能清点）；旧数据回放——借出文物 MISSING 与修复中文物 IN_REPAIR 自动引用台账
+（借出台账单号、`t_relic_ledger#` 来源）、无厅非法回放落 REJECTED 且同流水号回放原拒绝、
+同流水号重复回放返回同一版本；正式版本标题固定“展览借品清点盘点”；扫描批内重复拒绝、
+跨批重复合并、状态异常必填说明；盘点中归还触发版本冲突且预检列出 LOAN_CHANGE，
+重建版本搬运扫描（跨批去重、旧版本 SUPERSEDED）；现场提交产出 MISSING、
+WRONG_POINT/UNKNOWN_LABEL/WRONG_HALL/LABEL_REUSED 错位、REVOKED/WITHDRAWN_STILL_PRESENT
+状态异常与正确计数；差异无解释/无照片/见证人缺失或相同全部阻断复核，同图重复拒绝；
+零差异厅也要复核、未全确认不能关版本、版本未关不能关展览；关闭后扫描/改写解释/复核
+全部拒绝，仅补充记录可追加（带照片+双见证人，相同见证人拒绝）且原结果不变；
+空厅展览回放/现场版本零差异可闭环；同一扫描流水号双线程并发恰一条 EFFECTIVE 尝试、
+只落一条批次。
